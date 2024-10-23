@@ -1,56 +1,40 @@
-import React, { useState } from 'react';
-import { useVoiceClient, useMicrophone } from '@humeai/voice-react'; // Correct imports from Hume AI
-import { Button, Container, Row, Col } from 'react-bootstrap'; // Bootstrap components
+import React, { useEffect, useState } from 'react';
+import ClientComponent from './components/ClientComponent';
+import { fetchAccessToken } from 'hume';
 
 const App: React.FC = () => {
-  const [transcript, setTranscript] = useState('');  // Stores the real-time transcript from Hume AI
-  const [isRecording, setIsRecording] = useState(false);  // Manages the state of recording
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize the voice client to connect to Hume AI (Configure this with your Hume AI settings)
-  const voiceClient = useVoiceClient({
-    onFinalTranscript: (finalTranscript) => {
-      setTranscript(finalTranscript);  // Update the state with the final transcript from Hume AI
-    },
-    onError: (error) => {
-      console.error("Voice Client Error:", error);  // Handle any errors from Hume AI
-    }
-  });
+  // Fetch the access token when the component mounts
+  useEffect(() => {
+    const getAccessToken = async () => {
+      try {
+        const token = await fetchAccessToken({
+          apiKey: String(process.env.REACT_APP_HUME_API_KEY), // React env variable prefix
+          secretKey: String(process.env.REACT_APP_HUME_SECRET_KEY),
+        });
+        setAccessToken(token);
+      } catch (err) {
+        setError("Failed to fetch access token from Hume");
+        console.error(err);
+      }
+    };
 
-  // Initialize the microphone for capturing real-time audio
-  const { startRecording, stopRecording } = useMicrophone({
-    onData: (audioChunk) => {
-      voiceClient.sendAudioChunk(audioChunk);  // Send real-time audio to Hume AI
-    },
-    onFinalTranscript: (finalTranscript) => {
-      setTranscript(finalTranscript);  // Update the state with the final transcript
-    },
-  });
+    getAccessToken();
+  }, []);
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    startRecording();  // Start recording and sending audio to Hume AI
-  };
+  if (error) {
+    return <div>{error}</div>;
+  }
 
-  const handleStopRecording = () => {
-    setIsRecording(false);
-    stopRecording();  // Stop recording
-  };
+  if (!accessToken) {
+    return <div>Loading...</div>;
+  }
 
-  return (
-    <Container>
-      <Row>
-        <Col>
-          <h1>Voice Interaction with Hume AI</h1>
-          {isRecording ? (
-            <Button onClick={handleStopRecording}>Stop Speaking</Button>
-          ) : (
-            <Button onClick={handleStartRecording}>Start Speaking</Button>
-          )}
-          <p>Transcript: {transcript || "No transcript available yet"}</p>
-        </Col>
-      </Row>
-    </Container>
-  );
+  // Pass the access token to the ClientComponent once it's fetched
+  return <ClientComponent accessToken={accessToken} />;
 };
 
 export default App;
+
