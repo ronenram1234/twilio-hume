@@ -18,7 +18,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // "baseUrl": ".",
+    // "paths": {
+    //   "@twilio/*": ["node_modules/@twilio/*"]
   },
   "include": [
     "src"
